@@ -1,53 +1,124 @@
 const express = require('express')
 const cors = require('cors')
+const compression = require('compression')
 const config = require('./config/config')
 const logger = require('./middleware/logger')
+const {
+  generalLimiter,
+  apiLimiter,
+  speedLimiter,
+  securityHeaders,
+  hppProtection
+} = require('./middleware/security')
+const { sanitizeInput } = require('./middleware/sanitization')
 const indexRoutes = require('./routes/index')
 const userRoutes = require('./routes/users')
 
 const app = express()
 
-// Middleware
+// Security middleware (apply first)
+app.use(securityHeaders)
+app.use(hppProtection)
+
+// Compression middleware
+app.use(compression())
+
+// Rate limiting
+app.use(generalLimiter)
+app.use(speedLimiter)
+
+// CORS and parsing middleware
 app.use(cors(config.cors))
 app.use(express.json({ limit: '10mb' }))
-app.use(express.urlencoded({ extended: true }))
+app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+
+// Input sanitization
+app.use(sanitizeInput)
+
+// Logging middleware
 app.use(logger)
 
-// Routes
+// Routes with specific rate limiting
 app.use('/', indexRoutes)
+app.use('/api', apiLimiter) // Apply API rate limiting to all /api routes
 app.use('/api/users', userRoutes)
 
-// Health check endpoint
+// Health check endpoint (exempt from rate limiting)
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
     message: 'Server is running',
     environment: config.nodeEnv,
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    security: {
+      rateLimit: 'enabled',
+      cors: 'enabled',
+      helmet: 'enabled',
+      compression: 'enabled'
+    }
   })
 })
 
 // Error handling middleware
 app.use((err, req, res, _next) => {
   console.error(err.stack)
-  res.status(500).json({
+
+  // Don't leak error details in production
+  const errorResponse = {
     success: false,
-    message: 'Internal Server Error',
-    error: config.nodeEnv === 'development' ? err.message : undefined
-  })
+    message: 'Internal Server Error'
+  }
+
+  if (config.nodeEnv === 'development') {
+    errorResponse.error = err.message
+    errorResponse.stack = err.stack
+  }
+
+  res.status(500).json(errorResponse)
 })
 
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({
     success: false,
-    message: 'Route not found'
+    message: 'Route not found',
+    path: req.originalUrl,
+    method: req.method
   })
 })
 
-app.listen(config.port, () => {
-  console.log(`Server running on port ${config.port} in ${config.nodeEnv} mode`)
+// Variable para almacenar referencia del servidor
+let server
+
+// Solo iniciar servidor si no estamos en testing
+if (process.env.NODE_ENV !== 'test') {
+  server = app.listen(config.port, () => {
+    console.log(`🚀 Server running on port ${config.port} in ${config.nodeEnv} mode`)
+    console.log('🛡️  Security: Rate limiting, CORS, Helmet enabled')
+    console.log(`📊 Health check: http://localhost:${config.port}/health`)
+  })
+}
+
+// Función para cerrar el servidor (usado en tests)
+app.closeServer = () => {
+  return new Promise((resolve) => {
+    if (server) {
+      server.close(resolve)
+    } else {
+      resolve()
+    }
+  })
+}
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received. Shutting down gracefully...')
+  if (server) {
+    server.close(() => {
+      console.log('Process terminated')
+    })
+  }
 })
 
 module.exports = app

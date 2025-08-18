@@ -9,3 +9,14 @@ yarn-error.log*
 *.log
 coverage/
 .nyc_output/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+
+# Build
+dist/
+build/

@@ -1,11 +1,16 @@
 {
   "name": "projectdwi",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "Backend API with Node.js, Express, and Docker",
+  "main": "src/app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node src/app.js",
     "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src/ tests/",
+    "lint:fix": "eslint src/ tests/ --fix",
     "docker:build": "docker build -t projectdwi .",
     "docker:run": "docker run -p 3000:3000 projectdwi",
     "docker:compose": "docker-compose up",
@@ -15,20 +20,52 @@
     "type": "git",
     "url": "git+https://github.com/Zaisilva/projectDWI.git"
   },
-  "keywords": [],
+  "keywords": [
+    "nodejs",
+    "express",
+    "api",
+    "docker"
+  ],
   "author": "",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/Zaisilva/projectDWI/issues"
   },
   "homepage": "https://github.com/Zaisilva/projectDWI#readme",
-  "description": "",
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^5.1.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "eslint": "^8.57.1",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^6.6.0",
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.10",
+    "supertest": "^6.3.3"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/app.js"
+    ],
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 70,
+        "functions": 70,
+        "lines": 70,
+        "statements": 70
+      }
+    }
   }
 }

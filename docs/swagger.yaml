@@ -1,0 +1,393 @@
+openapi: 3.0.3
+info:
+  title: Node.js Backend API
+  description: |
+    Backend API built with Node.js, Express, Docker, and GitHub Actions CI/CD.
+    
+    ## Features
+    - RESTful API endpoints
+    - Rate limiting and security middleware
+    - Input validation and sanitization
+    - Docker containerization
+    - CI/CD pipeline with GitHub Actions
+    
+    ## Authentication
+    Currently, this API does not require authentication, but rate limiting is applied.
+    
+    ## Rate Limiting
+    - General: 100 requests per 15 minutes
+    - API endpoints: 50 requests per 10 minutes  
+    - User creation: 5 requests per 15 minutes
+    
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://your-api.herokuapp.com
+    description: Production server
+
+tags:
+  - name: Health
+    description: Health check endpoints
+  - name: Users
+    description: User management operations
+  - name: System
+    description: System information
+
+paths:
+  /:
+    get:
+      tags:
+        - System
+      summary: Get API information
+      description: Returns basic information about the API
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Welcome to Node.js Backend API"
+                  version:
+                    type: string
+                    example: "1.0.0"
+                  endpoints:
+                    type: object
+                    properties:
+                      health:
+                        type: string
+                        example: "/health"
+                      users:
+                        type: string
+                        example: "/api/users"
+
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Returns the current status of the API server
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+                  message:
+                    type: string
+                    example: "Server is running"
+                  environment:
+                    type: string
+                    example: "development"
+                  timestamp:
+                    type: string
+                    format: date-time
+                  uptime:
+                    type: number
+                    example: 123.456
+                  security:
+                    type: object
+                    properties:
+                      rateLimit:
+                        type: string
+                        example: "enabled"
+                      cors:
+                        type: string
+                        example: "enabled"
+                      helmet:
+                        type: string
+                        example: "enabled"
+                      compression:
+                        type: string
+                        example: "enabled"
+
+  /api/users:
+    get:
+      tags:
+        - Users
+      summary: Get all users
+      description: Retrieve a paginated list of users
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+    post:
+      tags:
+        - Users
+      summary: Create a new user
+      description: Create a new user with validation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 50
+                  pattern: '^[a-zA-Z\s]+$'
+                  example: "Zaira"
+                  description: "User's full name (letters and spaces only)"
+                email:
+                  type: string
+                  format: email
+                  example: "zai@example.com"
+                  description: "User's email address"
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/User'
+                  message:
+                    type: string
+                    example: "User created successfully"
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Email already exists"
+                  field:
+                    type: string
+                    example: "email"
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /api/users/{id}:
+    get:
+      tags:
+        - Users
+      summary: Get user by ID
+      description: Retrieve a specific user by their ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "User not found"
+                  id:
+                    type: string
+                    example: "123"
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+          description: "Unique user identifier"
+        name:
+          type: string
+          example: "Daniel"
+          description: "User's full name"
+        email:
+          type: string
+          format: email
+          example: "dani@example.com"
+          description: "User's email address"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-08-18T12:00:00.000Z"
+          description: "User creation timestamp"
+
+    Pagination:
+      type: object
+      properties:
+        currentPage:
+          type: integer
+          example: 1
+        totalPages:
+          type: integer
+          example: 5
+        totalItems:
+          type: integer
+          example: 50
+        itemsPerPage:
+          type: integer
+          example: 10
+        hasNext:
+          type: boolean
+          example: true
+        hasPrev:
+          type: boolean
+          example: false
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "An error occurred"
+
+    ValidationError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Validation failed"
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: "email"
+              message:
+                type: string
+                example: "Must be a valid email address"
+              value:
+                type: string
+                example: "invalid-email"
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationError'
+
+    RateLimitError:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: "Too many requests, please try again later"
+              retryAfter:
+                type: integer
+                example: 900
+                description: "Seconds until rate limit resets"
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: "API key for authentication (future implementation)"
+
+# Global security (currently not implemented)
+# security:
+#   - ApiKeyAuth: []

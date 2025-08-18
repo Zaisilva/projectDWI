@@ -1,8 +1,13 @@
 const express = require('express')
 const cors = require('cors')
 const compression = require('compression')
+const morgan = require('morgan') 
+require('express-async-errors') 
+
 const config = require('./config/config')
 const logger = require('./middleware/logger')
+const { setupDocs } = require('./middleware/docs') 
+const { setupAsyncErrorHandling } = require('./middleware/asyncHandler') 
 const {
   generalLimiter,
   apiLimiter,
@@ -15,6 +20,9 @@ const indexRoutes = require('./routes/index')
 const userRoutes = require('./routes/users')
 
 const app = express()
+
+// HTTP request logging
+app.use(morgan('dev'))
 
 // Security middleware (apply first)
 app.use(securityHeaders)
@@ -38,6 +46,9 @@ app.use(sanitizeInput)
 // Logging middleware
 app.use(logger)
 
+// Setup API documentation
+setupDocs(app) // Nuevo: configurar documentación API
+
 // Routes with specific rate limiting
 app.use('/', indexRoutes)
 app.use('/api', apiLimiter) // Apply API rate limiting to all /api routes
@@ -56,29 +67,19 @@ app.get('/health', (req, res) => {
       cors: 'enabled',
       helmet: 'enabled',
       compression: 'enabled'
+    },
+    documentation: {  
+      interactive: '/docs',
+      json: '/docs/json',
+      info: '/docs/info'
     }
   })
 })
 
-// Error handling middleware
-app.use((err, req, res, _next) => {
-  console.error(err.stack)
+// Setup global async error handling
+setupAsyncErrorHandling(app) // Nuevo: configurar manejo de errores asíncronos
 
-  // Don't leak error details in production
-  const errorResponse = {
-    success: false,
-    message: 'Internal Server Error'
-  }
-
-  if (config.nodeEnv === 'development') {
-    errorResponse.error = err.message
-    errorResponse.stack = err.stack
-  }
-
-  res.status(500).json(errorResponse)
-})
-
-// 404 handler
+// 404 handler - Corregido para evitar el error de path-to-regexp
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -97,6 +98,7 @@ if (process.env.NODE_ENV !== 'test') {
     console.log(`🚀 Server running on port ${config.port} in ${config.nodeEnv} mode`)
     console.log('🛡️  Security: Rate limiting, CORS, Helmet enabled')
     console.log(`📊 Health check: http://localhost:${config.port}/health`)
+    console.log(`📚 API Documentation: http://localhost:${config.port}/docs`) // Nuevo: mensaje para documentación
   })
 }
 

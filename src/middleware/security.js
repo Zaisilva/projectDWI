@@ -50,8 +50,12 @@ const apiLimiter = createRateLimit(
 const speedLimiter = slowDown({
   windowMs: 15 * 60 * 1000, // 15 minutes
   delayAfter: 2, // allow 2 requests per windowMs without delay
-  delayMs: 500, // add 500ms delay per request after delayAfter
-  maxDelayMs: 20000 // max delay of 20 seconds
+  delayMs: () => 500, // nueva sintaxis recomendada
+  // O alternativamente:
+  // delayMs: (used, req) => {
+  //   const delayAfter = req.slowDown.limit;
+  //   return (used - delayAfter) * 500;
+  // },
 })
 
 // Security headers configuration

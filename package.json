@@ -3,7 +3,13 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "node src/app.js",
+    "start": "node src/app.js",
+    "docker:build": "docker build -t projectdwi .",
+    "docker:run": "docker run -p 3000:3000 projectdwi",
+    "docker:compose": "docker-compose up",
+    "docker:compose:build": "docker-compose up --build"
   },
   "repository": {
     "type": "git",
@@ -18,7 +24,11 @@
   "homepage": "https://github.com/Zaisilva/projectDWI#readme",
   "description": "",
   "dependencies": {
+    "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
   }
 }

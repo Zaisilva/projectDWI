@@ -39,12 +39,13 @@ app.use((err, req, res, next) => {
 });
 
 // 404 handler
-app.use('*', (req, res) => {
+app.use((req, res) => {
   res.status(404).json({
     success: false,
     message: 'Route not found'
   });
 });
+
 
 app.listen(config.port, () => {
   console.log(`Server running on port ${config.port} in ${config.nodeEnv} mode`);

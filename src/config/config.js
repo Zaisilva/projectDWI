@@ -15,7 +15,7 @@ const config = {
   // CORS configuration
   cors: {
     origin: process.env.NODE_ENV === 'production' 
-      ? ['https://localhost'] 
+      ? 'http://localhost:3000' 
       : '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']

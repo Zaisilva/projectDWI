@@ -3,8 +3,8 @@ const router = express.Router();
 
 // Mock data
 let users = [
-  { id: 1, name: 'John Doe', email: 'john@example.com' },
-  { id: 2, name: 'Jane Smith', email: 'jane@example.com' }
+  { id: 1, name: 'Zaira', email: 'zai@example.com' },
+  { id: 2, name: 'Daniel', email: 'dani@example.com' }
 ];
 
 // GET all users
